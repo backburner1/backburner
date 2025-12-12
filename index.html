@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portal Berita — Nusantara News (Demo)</title>
+  <meta name="description" content="Website berita demo: headline, kategori, pencarian, dan halaman artikel single-file HTML" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --muted:#6b7280; --accent:#1f6feb; --radius:12px; --max:1100px;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); margin:0; color:#0f172a}
+    .wrap{max-width:var(--max); margin:28px auto; padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    .logo{display:flex;gap:10px;align-items:center}
+    .logo .dot{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#0ea5a6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    h1{font-size:18px;margin:0}
+    .searchbar{margin-left:auto;display:flex;gap:8px}
+    input[type=search]{padding:10px 14px;border-radius:10px;border:1px solid #e6e9ef;min-width:220px}
+    button{padding:10px 14px;border-radius:10px;background:var(--accent);color:white;border:0;cursor:pointer}
+
+    .grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-top:22px}
+    .hero{background:linear-gradient(180deg,rgba(31,111,235,0.06),transparent);padding:18px;border-radius:12px;border:1px solid rgba(15,23,42,0.04)}
+    .headline{display:flex;gap:16px}
+    .headline img{width:220px;height:120px;object-fit:cover;border-radius:10px}
+    .headline h2{margin:0 0 8px 0}
+    .meta{color:var(--muted);font-size:13px}
+
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+    .card{background:var(--card);padding:12px;border-radius:12px;border:1px solid rgba(15,23,42,0.04);display:flex;gap:12px;align-items:flex-start}
+    .card img{width:120px;height:80px;object-fit:cover;border-radius:8px}
+    .card h3{margin:0;font-size:15px}
+
+    aside{position:relative}
+    .panel{background:var(--card);padding:12px;border-radius:12px;border:1px solid rgba(15,23,42,0.04)}
+    .categories{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{padding:8px 10px;border-radius:999px;border:1px solid rgba(15,23,42,0.06);font-size:13px;cursor:pointer}
+    .chip.active{background:var(--accent);color:white;border:0}
+
+    .trending{margin-top:12px}
+    .trending li{margin:8px 0;list-style:none}
+    footer{margin-top:28px;text-align:center;color:var(--muted);font-size:13px}
+
+    .modal{position:fixed;inset:0;background:rgba(3,7,18,0.5);display:flex;align-items:center;justify-content:center;padding:20px;z-index:40}
+    .modal .inner{width:100%;max-width:900px;max-height:90vh;overflow:auto;background:var(--card);padding:20px;border-radius:12px}
+    .hide{display:none}
+
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .cards{grid-template-columns:1fr}
+      .headline img{display:none}
+      input[type=search]{min-width:120px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <div class="dot">NN</div>
+        <div>
+          <h1>Nusantara News</h1>
+          <div style="font-size:12px;color:var(--muted)">Berita cepat & ringan (demo)</div>
+        </div>
+      </div>
+      <div class="searchbar">
+        <input id="q" type="search" placeholder="Cari berita, topik, nama..." oninput="applyFilters()" />
+        <button onclick="toggleDark()">Mode</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main>
+        <section class="hero" id="hero"></section>
+        <section class="cards" id="cards"></section>
+      </main>
+
+      <aside>
+        <div class="panel">
+          <strong>Kategori</strong>
+          <div class="categories" id="categories"></div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <strong>Trending</strong>
+          <ul class="trending" id="trending"></ul>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <strong>Langganan</strong>
+          <p style="margin:8px 0 12px 0;color:var(--muted);font-size:13px">Dapatkan ringkasan harian ke email (demo)</p>
+          <input id="email" placeholder="email@contoh.com" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef" />
+          <button style="width:100%;margin-top:8px" onclick="subscribe()">Langganan (demo)</button>
+        </div>
+      </aside>
+    </div>
+
+    <footer>Demo website berita — dibuat cepat. Kamu bisa edit isi artikel di file HTML ini.</footer>
+  </div>
+
+  <div id="modal" class="modal hide" onclick="if(event.target.id==='modal')closeModal()">
+    <div class="inner" id="modalInner"></div>
+  </div>
+
+  <script>
+    const articles = [
+      {id:1,title:'Ikrar Digital: Siswa SD Mulai Belajar Coding Lewat Game',category:'Pendidikan',summary:'Program coding untuk anak usia dini meningkat di beberapa sekolah dasar.',img:'https://picsum.photos/seed/edu/800/500',author:'R. Putra',date:'2025-09-18',content:'Program ini memperkenalkan logika dasar lewat permainan interaktif. Guru melaporkan ...'},
+      {id:2,title:'Pasar Lokal Panen Raya: Harga Sayur Stabil',category:'Ekonomi',summary:'Panen raya membantu stabilkan harga sayuran di pasar tradisional.',img:'https://picsum.photos/seed/pasar/800/500',author:'S. Dewi',date:'2025-09-18',content:'Musim panen membawa kelimpahan sayuran segar yang menurunkan harga eceran...'},
+      {id:3,title:'Startup Fintech Hadirkan Fitur Hemat Otomatis',category:'Teknologi',summary:'Fitur baru memudahkan pengguna menabung otomatis dari pengeluaran harian.',img:'https://picsum.photos/seed/fin/800/500',author:'A. Wijaya',date:'2025-09-17',content:'Fitur ini mengkategorikan pengeluaran lalu menyisihkan persen kecil setiap hari...'},
+      {id:4,title:'Festival Seni Rakyat Digelar di Ujung Kota',category:'Seni',summary:'Pagelaran seni rakyat menampilkan tari, musik, dan kerajinan lokal.',img:'https://picsum.photos/seed/seni/800/500',author:'L. Harahap',date:'2025-09-16',content:'Ratusan pengunjung memadati arena festival, menikmati pertunjukan...'},
+      {id:5,title:'Tips Sehat: 5 Gerakan Ringan untuk Pekerja Kantoran',category:'Kesehatan',summary:'Gerakan sederhana yang bisa dilakukan di meja untuk mengurangi pegal.',img:'https://picsum.photos/seed/fit/800/500',author:'M. Sari',date:'2025-09-15',content:'Cukup luangkan 5–8 menit setiap beberapa jam sekali untuk melakukan stretch...'}
+    ];
+
+    const categories = ['Semua', ...Array.from(new Set(articles.map(a=>a.category)))]
+
+    const catWrap = document.getElementById('categories')
+    categories.forEach((c,i)=>{
+      const btn = document.createElement('div')
+      btn.className='chip'+(i===0? ' active':'')
+      btn.textContent=c
+      btn.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));btn.classList.add('active');applyFilters()}
+      catWrap.appendChild(btn)
+    })
+
+    function renderHero(first){
+      const h = document.getElementById('hero')
+      h.innerHTML = `
+        <div class="headline">
+          <img src="${first.img}" alt="${first.title}" />
+          <div>
+            <div class="meta">${first.category} • ${first.date} • oleh ${first.author}</div>
+            <h2>${first.title}</h2>
+            <p style="color:var(--muted)">${first.summary}</p>
+            <p style="margin-top:10px"><button onclick="openArticle(${first.id})">Baca Selengkapnya</button></p>
+          </div>
+        </div>
+      `
+    }
+
+    function renderCards(list){
+      const wrap = document.getElementById('cards')
+      wrap.innerHTML=''
+      list.forEach(a=>{
+        const div = document.createElement('article')
+        div.className='card'
+        div.innerHTML = `
+          <img src="${a.img}" alt="${a.title}" />
+          <div>
+            <div class="meta">${a.category} • ${a.date}</div>
+            <h3>${a.title}</h3>
+            <p style="margin:6px 0;color:var(--muted);font-size:13px">${a.summary}</p>
+            <p style="margin-top:8px"><button onclick="openArticle(${a.id})">Baca</button></p>
+          </div>
+        `
+        wrap.appendChild(div)
+      })
+    }
+
+    function renderTrending(){
+      const t = document.getElementById('trending')
+      t.innerHTML=''
+      const sorted = [...articles].sort((a,b)=> new Date(b.date) - new Date(a.date)).slice(0,4)
+      sorted.forEach(s=>{
+        const li = document.createElement('li')
+        li.innerHTML = `<a href='#' onclick='openArticle(${s.id});return false' style='text-decoration:none;color:inherit'>${s.title}</a>`
+        t.appendChild(li)
+      })
+    }
+
+    function openArticle(id){
+      const a = articles.find(x=>x.id===id)
+      const modalInner = document.getElementById('modalInner')
+      modalInner.innerHTML = `
+        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+          <div>
+            <h2 style="margin:0">${a.title}</h2>
+            <div class="meta">${a.category} • ${a.date} • oleh ${a.author}</div>
+          </div>
+          <div><button onclick="closeModal()">Tutup</button></div>
+        </div>
+        <img src="${a.img}" alt="" style="width:100%;height:320px;object-fit:cover;border-radius:10px;margin-top:12px" />
+        <div style="margin-top:12px;line-height:1.6">${a.content}<p style='color:var(--muted);margin-top:18px'>Sumber: Demo internal</p></div>
+      `
+      document.getElementById('modal').classList.remove('hide')
+      location.hash = `#article-${id}`
+    }
+
+    function closeModal(){
+      document.getElementById('modal').classList.add('hide')
+      if(location.hash.startsWith('#article-')) history.replaceState(null,'', ' ')
+    }
+
+    function applyFilters(){
+      const q = document.getElementById('q').value.toLowerCase().trim()
+      const activeCat = document.querySelector('.chip.active').textContent
+      let list = articles.filter(a=>{
+        const matchQ = q === '' || (a.title+a.summary+a.content).toLowerCase().includes(q)
+        const matchC = activeCat === 'Semua' || a.category === activeCat
+        return matchQ && matchC
+      })
+      if(list.length===0){
+        document.getElementById('cards').innerHTML = '<div style="padding:18px;background:var(--card);border-radius:12px">Tidak ada hasil.</div>'
+        document.getElementById('hero').innerHTML = ''
+        return
+      }
+      renderHero(list[0])
+      renderCards(list.slice(1))
+    }
+
+    function subscribe(){
+      const e = document.getElementById('email').value
+      if(!e.includes('@')) return alert('Isi email yang valid dulu ya')
+      alert('Terima kasih. (Demo) email ' + e + ' sudah terdaftar')
+      document.getElementById('email').value = ''
+    }
+
+    function toggleDark(){
+      document.documentElement.style.setProperty('--bg', document.documentElement.style.getPropertyValue('--bg') === '#0b1220' ? '#f6f7fb' : '#0b1220')
+      document.documentElement.style.setProperty('--card', document.documentElement.style.getPropertyValue('--card') === '#0b1220' ? '#ffffff' : '#071023')
+      document.documentElement.style.setProperty('--muted', document.documentElement.style.getPropertyValue('--muted') === '#9aa4b2' ? '#6b7280' : '#9aa4b2')
+    }
+
+    renderTrending()
+    applyFilters()
+
+    window.addEventListener('load',()=>{
+      if(location.hash.startsWith('#article-')){
+        const id = parseInt(location.hash.replace('#article-',''))
+        if(!isNaN(id)) openArticle(id)
+      }
+    })
+  </script>
+</body>
+</html>
